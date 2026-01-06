@@ -32,7 +32,7 @@ void setup() {
     display.setTextSize(2);
     display.setTextColor(WHITE);
     display.setCursor(10, 20);
-    display.print("Привет!");
+    display.print("Sedr");
     display.display();
   }
 
