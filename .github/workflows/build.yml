@@ -1,3 +1,4 @@
+# .github/workflows/build.yml
 name: Build ESP32 Firmware
 
 on:
@@ -36,7 +37,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pio-esp32-2.0.9-
 
-    - name: 🛠️ Build
+    - name: 🛠️ Build firmware
       run: pio run -e esp32_node32s
 
     - name: 📤 Upload artifact
@@ -46,8 +47,10 @@ jobs:
         path: .pio/build/esp32_node32s/firmware.bin
         retention-days: 7
 
-    - name: 📋 Info
+    - name: 📋 Build info
       run: |
-        echo "✅ Build OK"
+        echo "✅ Build completed"
+        echo "📦 Binary:"
         ls -lh .pio/build/esp32_node32s/firmware.bin
-        file .pio/build/esp32_node32s/firmware.bin
+        echo "🔍 Version check:"
+        pio pkg list --global | grep arduinoespressif32 || true
