@@ -44,7 +44,7 @@ void setup() {
   esp_wifi_set_promiscuous(true);
   delay(100);
 
-  Serial.println("\n[#] ESP32 DoS Ready");
+  Serial.println("\n[#] ESP32 DoS s3");
   Serial.println("Commands: scan, set <num>, start, stop");
 }
 void loop() {
