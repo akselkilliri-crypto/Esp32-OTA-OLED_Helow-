@@ -1,4 +1,3 @@
-# .github/workflows/build.yml
 name: Build ESP32 Firmware
 
 on:
@@ -8,17 +7,15 @@ on:
       - 'src/**'
       - 'platformio.ini'
       - '.github/workflows/**'
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # Ручной запуск
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
-    - name: 📦 Checkout code
+    - name: 📦 Checkout
       uses: actions/checkout@v4
 
     - name: 🐍 Setup Python
@@ -31,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade platformio
 
-    - name: 🔧 Cache PlatformIO packages
+    - name: 🔧 Cache PlatformIO
       uses: actions/cache@v4
       with:
         path: ~/.platformio
@@ -39,39 +36,18 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pio-esp32-2.0.9-
 
-    - name: 🛠️ Build firmware
-      run: |
-        pio run -e esp32_node32s
-      env:
-        PLATFORMIO_BUILD_FLAGS: "-DCORE_DEBUG_LEVEL=0"
+    - name: 🛠️ Build
+      run: pio run -e esp32_node32s
 
-    - name: 📤 Upload binary artifact
+    - name: 📤 Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: esp32-deauth-firmware
+        name: esp32-firmware
         path: .pio/build/esp32_node32s/firmware.bin
         retention-days: 7
 
-    - name: 📋 Build summary
+    - name: 📋 Info
       run: |
-        echo "✅ Build completed!"
-        echo "📦 Binary size:"
+        echo "✅ Build OK"
         ls -lh .pio/build/esp32_node32s/firmware.bin
-        echo "🔍 SHA256:"
-        sha256sum .pio/build/esp32_node32s/firmware.bin
-
-    - name: 🚀 Auto-release (optional)
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      uses: softprops/action-gh-release@v2
-      with:
-        files: .pio/build/esp32_node32s/firmware.bin
-        tag_name: build-${{ github.run_number }}
-        name: "Build #${{ github.run_number }}"
-        body: |
-          📦 Автоматическая сборка ESP32 firmware
-          🔹 Core: 2.0.9
-          🔹 ESP-IDF: 4.4.x
-          🔹 Board: NodeMCU-32S
-          🔹 Commit: ${{ github.sha }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        file .pio/build/esp32_node32s/firmware.bin
